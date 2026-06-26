@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# data storage (persona cache + debate history)
+/data/
+
 # production
 /build
 

@@ -22,6 +22,7 @@ export interface PersonaCache {
   title: string;
   cachedAt: string;
   modelUsed: string;
+  promptVersion: number;
 
   coherence: CoherenceAssessment;
 
