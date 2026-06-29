@@ -61,15 +61,17 @@ export async function* runDebate(
   personaB: PersonaCache,
   maxTurns: number = 12,
   debateId?: string,
-  existingState?: DebateState
+  existingState?: DebateState,
+  topic?: string
 ): AsyncGenerator<SSEEvent> {
-  // Derive the topic — either fresh or from existing state
-  let topic: string;
-  if (existingState?.topic) {
-    topic = existingState.topic;
-  } else {
+  // Derive the topic — explicit param, existing state, or auto-generate
+  let resolvedTopic = topic?.trim();
+  if (!resolvedTopic && existingState?.topic) {
+    resolvedTopic = existingState.topic;
+  }
+  if (!resolvedTopic) {
     try {
-      topic = await generateTopic(personaA, personaB);
+      resolvedTopic = await generateTopic(personaA, personaB);
     } catch (err) {
       yield { type: "error", message: `Failed to generate topic: ${err instanceof Error ? err.message : err}` };
       return;
@@ -81,7 +83,7 @@ export async function* runDebate(
 
   const state: DebateState = existingState ?? {
     id: debateId ?? uuid(),
-    topic,
+    topic: resolvedTopic,
     personaA,
     personaB,
     turns: [],
@@ -98,7 +100,7 @@ export async function* runDebate(
   if (!existingState) {
     yield {
       type: "debate-meta",
-      topic,
+      topic: resolvedTopic,
       personaA: {
         name: personaA.name,
         slug: personaA.slug,
@@ -129,7 +131,7 @@ export async function* runDebate(
     userMessageBuilder: (turns: DebateTurn[], name: string) => string
   ): AsyncGenerator<SSEEvent> {
     const persona = getPersona(state, speaker);
-    const systemPrompt = buildSystemPrompt(persona, topic);
+    const systemPrompt = buildSystemPrompt(persona, resolvedTopic!);
     const windowedTurns = turnType === "debate"
       ? sliceTranscript(state.turns, 6)
       : state.turns;
@@ -233,8 +235,8 @@ export async function* runDebate(
   const speakOrder: { speaker: "A" | "B"; type: TurnType; builder: (turns: DebateTurn[], name: string) => string }[] = [];
 
   // Build the full sequence
-  speakOrder.push({ speaker: firstSpeaker, type: "intro", builder: (_turns, _name) => buildIntroPrompt(getPersona(state, firstSpeaker), topic) });
-  speakOrder.push({ speaker: secondSpeaker, type: "intro", builder: (_turns, _name) => buildIntroPrompt(getPersona(state, secondSpeaker), topic) });
+  speakOrder.push({ speaker: firstSpeaker, type: "intro", builder: (_turns, _name) => buildIntroPrompt(getPersona(state, firstSpeaker), resolvedTopic!) });
+  speakOrder.push({ speaker: secondSpeaker, type: "intro", builder: (_turns, _name) => buildIntroPrompt(getPersona(state, secondSpeaker), resolvedTopic!) });
 
   for (let i = 0; i < debateTurnCount; i++) {
     const speaker: "A" | "B" = i % 2 === 0 ? secondSpeaker : firstSpeaker;

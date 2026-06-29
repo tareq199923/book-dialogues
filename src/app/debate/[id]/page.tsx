@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useMemo } from "react";
+import { useEffect, useReducer, useRef, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Markdown from "@/components/Markdown";
 import RateIndicator from "@/components/RateIndicator";
+import { formatDebateAsMarkdown, formatDebateAsJson } from "@/lib/export";
 
 type Turn = {
   id: string;
@@ -214,6 +215,8 @@ export default function DebatePage() {
   const safeStreamState = streamState ?? initialState;
   const { turns, topic, personaA, personaB, maxTurns, debateComplete, errorBanner } = safeStreamState;
 
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
+
   const completedTurns = useMemo(
     () => turns.filter((t) => !t.isStreaming).length,
     [turns]
@@ -223,6 +226,68 @@ export default function DebatePage() {
     () => turns[safeStreamState.activeTurnIndex]?.content,
     [safeStreamState.activeTurnIndex, turns]
   );
+
+  function download(content: string, filename: string, type: string) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function buildExportData() {
+    return {
+      id: debateId!,
+      topic,
+      personaA: { name: personaA?.name ?? "Person A" },
+      personaB: { name: personaB?.name ?? "Person B" },
+      maxTurns,
+      turns: turns.map((t, i) => ({
+        speakerName: t.speakerName,
+        content: t.content,
+        sequenceNumber: i,
+      })),
+    };
+  }
+
+  function handleDownloadMarkdown() {
+    const data = buildExportData();
+    const md = formatDebateAsMarkdown(data);
+    const slugA = personaA?.slug ?? "person-a";
+    const slugB = personaB?.slug ?? "person-b";
+    download(md, `debate-${slugA}-vs-${slugB}.md`, "text/markdown");
+  }
+
+  function handleDownloadJson() {
+    const data = buildExportData();
+    const json = formatDebateAsJson(data);
+    const slugA = personaA?.slug ?? "person-a";
+    const slugB = personaB?.slug ?? "person-b";
+    download(json, `debate-${slugA}-vs-${slugB}.json`, "application/json");
+  }
+
+  async function handleCopyLink() {
+    const shareUrl = `${window.location.origin}/history/${debateId}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = shareUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+    }
+    setShowCopiedToast(true);
+  }
+
+  useEffect(() => {
+    if (!showCopiedToast) return;
+    const id = setTimeout(() => setShowCopiedToast(false), 2000);
+    return () => clearTimeout(id);
+  }, [showCopiedToast]);
 
   useEffect(() => {
     if (!debateId) return;
@@ -341,6 +406,29 @@ export default function DebatePage() {
           {personaA?.name ?? "Person A"} and {personaB?.name ?? "Person B"} have shared their
           reflections. The conversation has ended.
         </p>
+        <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={handleDownloadMarkdown}
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+          >
+            Download Markdown
+          </button>
+          <button
+            onClick={handleDownloadJson}
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+          >
+            Download JSON
+          </button>
+          <button
+            onClick={handleCopyLink}
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+          >
+            Copy Link
+          </button>
+        </div>
+        {showCopiedToast && (
+          <p className="mb-6 text-xs text-emerald-600">Link copied to clipboard</p>
+        )}
         <button
           onClick={() => router.push("/")}
           className="rounded-lg bg-zinc-950 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800"

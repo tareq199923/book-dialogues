@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Markdown from "@/components/Markdown";
 import { DebateState } from "@/lib/debate/types";
+import { formatDebateAsMarkdown, formatDebateAsJson } from "@/lib/export";
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function HistoryPage() {
   const [debate, setDebate] = useState<DebateState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
 
   useEffect(() => {
     if (!debateId) return;
@@ -31,6 +33,73 @@ export default function HistoryPage() {
         setLoading(false);
       });
   }, [debateId]);
+
+  function download(content: string, filename: string, type: string) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleDownloadMarkdown() {
+    if (!debate) return;
+    const md = formatDebateAsMarkdown({
+      id: debate.id,
+      topic: debate.topic,
+      personaA: { name: debate.personaA.name },
+      personaB: { name: debate.personaB.name },
+      maxTurns: debate.maxTurns,
+      turns: debate.turns.map((t) => ({
+        speakerName: t.speakerName,
+        content: t.content,
+        sequenceNumber: t.sequenceNumber,
+      })),
+      createdAt: debate.createdAt,
+    });
+    download(md, `debate-${debate.personaA.slug}-vs-${debate.personaB.slug}.md`, "text/markdown");
+  }
+
+  function handleDownloadJson() {
+    if (!debate) return;
+    const json = formatDebateAsJson({
+      id: debate.id,
+      topic: debate.topic,
+      personaA: { name: debate.personaA.name },
+      personaB: { name: debate.personaB.name },
+      maxTurns: debate.maxTurns,
+      turns: debate.turns.map((t) => ({
+        speakerName: t.speakerName,
+        content: t.content,
+        sequenceNumber: t.sequenceNumber,
+      })),
+      createdAt: debate.createdAt,
+    });
+    download(json, `debate-${debate.personaA.slug}-vs-${debate.personaB.slug}.json`, "application/json");
+  }
+
+  async function handleCopyLink() {
+    const shareUrl = `${window.location.origin}/history/${debateId}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = shareUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+    }
+    setShowCopiedToast(true);
+  }
+
+  useEffect(() => {
+    if (!showCopiedToast) return;
+    const id = setTimeout(() => setShowCopiedToast(false), 2000);
+    return () => clearTimeout(id);
+  }, [showCopiedToast]);
 
   if (loading) {
     return (
@@ -85,9 +154,32 @@ export default function HistoryPage() {
           >
             &larr; Back
           </button>
-          <span className="text-xs text-zinc-500">
-            {debate.turns.length} turns
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadMarkdown}
+              className="rounded border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+            >
+              MD
+            </button>
+            <button
+              onClick={handleDownloadJson}
+              className="rounded border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+            >
+              JSON
+            </button>
+            <button
+              onClick={handleCopyLink}
+              className="rounded border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+            >
+              Copy
+            </button>
+            {showCopiedToast && (
+              <span className="text-xs text-emerald-600">Copied!</span>
+            )}
+            <span className="text-xs text-zinc-500">
+              {debate.turns.length} turns
+            </span>
+          </div>
         </div>
       </header>
 

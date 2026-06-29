@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 type DebateSummary = {
@@ -12,17 +12,33 @@ type DebateSummary = {
   createdAt: string;
 };
 
-type LoadingPhase = "idle" | "starting" | "deriving";
+type FormPhase = "idle" | "resolving" | "previewed" | "starting";
+
+type PersonaInfo = {
+  name: string;
+  slug: string;
+  coherence: "deep" | "moderate" | "shallow";
+};
+
+type PreviewData = {
+  personaA: PersonaInfo;
+  personaB: PersonaInfo;
+  topic: string;
+  topicGenerated: boolean;
+};
 
 export default function Home() {
   const [titleA, setTitleA] = useState("");
   const [titleB, setTitleB] = useState("");
+  const [topic, setTopic] = useState("");
   const [maxTurns, setMaxTurns] = useState(12);
-  const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>("idle");
+  const [formPhase, setFormPhase] = useState<FormPhase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ a?: string; b?: string }>({});
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [editTopic, setEditTopic] = useState("");
   const [history, setHistory] = useState<DebateSummary[]>([]);
-  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -33,10 +49,34 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
-    };
-  }, []);
+    const params = new URLSearchParams(window.location.search);
+    const selectA = params.get("selectA");
+    const selectB = params.get("selectB");
+    const select = params.get("select");
+    const side = params.get("side");
+
+    const slugA = selectA || (select && side === "a" ? select : null);
+    const slugB = selectB || (select && side === "b" ? select : null);
+
+    if (!slugA && !slugB) return;
+
+    fetch("/api/persona/list")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!Array.isArray(data)) return;
+        if (slugA) {
+          const match = data.find((p: any) => p.slug === slugA);
+          if (match) setTitleA(match.title);
+        }
+        if (slugB) {
+          const match = data.find((p: any) => p.slug === slugB);
+          if (match) setTitleB(match.title);
+        }
+      })
+      .catch(() => {});
+
+    router.replace("/");
+  }, [router]);
 
   function clearFieldError(field: "a" | "b") {
     setFieldErrors((prev) => {
@@ -46,13 +86,16 @@ export default function Home() {
     });
   }
 
-  async function handleStartDebate(e: React.FormEvent) {
+  async function handlePreview(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setPreviewError(null);
+    setPreviewData(null);
     setFieldErrors({});
 
     const cleanA = titleA.trim();
     const cleanB = titleB.trim();
+    const cleanTopic = topic.trim();
 
     const newFieldErrors: { a?: string; b?: string } = {};
     if (!cleanA) newFieldErrors.a = "Title cannot be empty";
@@ -62,41 +105,110 @@ export default function Home() {
       return;
     }
 
-    setLoadingPhase("starting");
-
-    loadingTimerRef.current = setTimeout(() => {
-      setLoadingPhase("deriving");
-    }, 2500);
+    setFormPhase("resolving");
 
     try {
-      const res = await fetch("/api/debate/start", {
+      const res = await fetch("/api/debate/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           personaA: cleanA,
           personaB: cleanB,
-          maxTurns,
+          topic: cleanTopic || undefined,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Unknown error");
+        if (res.status === 422) {
+          setPreviewError(data.error ?? "One of the books cannot produce a coherent persona");
+        } else {
+          setError(data.error ?? "Failed to preview debate");
+        }
+        setFormPhase("idle");
+        return;
+      }
+
+      setPreviewData(data);
+      setEditTopic(data.topic);
+      setFormPhase("previewed");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to preview debate");
+      setFormPhase("idle");
+    }
+  }
+
+  async function handleConfirmStart() {
+    setPreviewError(null);
+    setFormPhase("starting");
+
+    try {
+      const res = await fetch("/api/debate/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personaA: titleA.trim(),
+          personaB: titleB.trim(),
+          maxTurns,
+          topic: editTopic.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setPreviewError(data.error ?? "Unknown error");
+        setFormPhase("previewed");
         return;
       }
 
       router.push(`/debate/${data.debateId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start debate");
-    } finally {
-      if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
-      setLoadingPhase("idle");
+      setPreviewError(err instanceof Error ? err.message : "Failed to start debate");
+      setFormPhase("previewed");
     }
   }
 
-  const loadingLabel =
-    loadingPhase === "deriving" ? "Deriving personas..." : "Starting debate...";
+  function handleCancel() {
+    setPreviewData(null);
+    setPreviewError(null);
+    setFormPhase("idle");
+  }
+
+  async function handleRegenerate() {
+    if (!previewData) return;
+
+    setPreviewError(null);
+
+    try {
+      const res = await fetch("/api/debate/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personaA: titleA.trim(),
+          personaB: titleB.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setPreviewError(data.error ?? "Failed to regenerate topic");
+        return;
+      }
+
+      setPreviewData(data);
+      setEditTopic(data.topic);
+    } catch (err) {
+      setPreviewError(err instanceof Error ? err.message : "Failed to regenerate topic");
+    }
+  }
+
+  const buttonLabel =
+    formPhase === "resolving" ? "Resolving personas..." :
+    formPhase === "starting" ? "Starting debate..." :
+    "Start Debate";
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -108,7 +220,7 @@ export default function Home() {
           Two books debate each other, as if they were real people.
         </p>
 
-        <form onSubmit={handleStartDebate} className="mb-10 space-y-6">
+        <form onSubmit={handlePreview} className="mb-10 space-y-6">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-zinc-700">
               Book 1
@@ -175,12 +287,25 @@ export default function Home() {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-zinc-700">
+              Topic (optional)
+            </label>
+            <input
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="e.g., Can justice coexist with suffering?"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-zinc-950 focus:outline-none focus:ring-1 focus:ring-zinc-950"
+            />
+          </div>
+
           <button
             type="submit"
-            disabled={loadingPhase !== "idle" || !titleA.trim() || !titleB.trim()}
+            disabled={formPhase !== "idle" || !titleA.trim() || !titleB.trim()}
             className="w-full rounded-lg bg-zinc-950 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
           >
-            {loadingPhase !== "idle" ? loadingLabel : "Start Debate"}
+            {formPhase !== "idle" ? buttonLabel : "Start Debate"}
           </button>
         </form>
 
@@ -190,12 +315,99 @@ export default function Home() {
             <button
               onClick={() => {
                 setError(null);
-                handleStartDebate({ preventDefault: () => {} } as React.FormEvent);
+                handlePreview({ preventDefault: () => {} } as React.FormEvent);
               }}
               className="mt-2 text-sm font-medium text-red-800 underline hover:no-underline"
             >
               Try again
             </button>
+          </div>
+        )}
+
+        {(formPhase === "previewed" || formPhase === "starting") && previewData && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+            onClick={handleCancel}
+          >
+            <div
+              className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="mb-2 text-lg font-semibold text-zinc-900">
+                Preview &amp; Confirm
+              </h2>
+
+              <div className="mb-4 flex gap-4">
+                <div className="flex-1 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-sm font-medium text-amber-900">{previewData.personaA.name}</p>
+                  <p className="text-xs text-amber-700">{previewData.personaA.slug}</p>
+                  <span
+                    className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                      previewData.personaA.coherence === "deep"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {previewData.personaA.coherence === "deep" ? "Deep" : "Moderate"}
+                  </span>
+                </div>
+                <div className="flex-1 rounded-lg border border-sky-200 bg-sky-50 p-3">
+                  <p className="text-sm font-medium text-sky-900">{previewData.personaB.name}</p>
+                  <p className="text-xs text-sky-700">{previewData.personaB.slug}</p>
+                  <span
+                    className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                      previewData.personaB.coherence === "deep"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {previewData.personaB.coherence === "deep" ? "Deep" : "Moderate"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="mb-1 block text-sm font-medium text-zinc-700">
+                  Debate topic
+                </label>
+                <textarea
+                  value={editTopic}
+                  onChange={(e) => setEditTopic(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-zinc-950 focus:outline-none focus:ring-1 focus:ring-zinc-950"
+                />
+              </div>
+
+              {previewError && (
+                <p className="mb-3 text-sm text-red-600">{previewError}</p>
+              )}
+
+              <div className="flex items-center gap-3">
+                {previewData.topicGenerated && (
+                  <button
+                    onClick={handleRegenerate}
+                    disabled={formPhase !== "previewed"}
+                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50"
+                  >
+                    Regenerate
+                  </button>
+                )}
+                <button
+                  onClick={handleCancel}
+                  disabled={formPhase !== "previewed"}
+                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmStart}
+                  disabled={formPhase !== "previewed"}
+                  className="ml-auto rounded-lg bg-zinc-950 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
+                >
+                  {formPhase === "starting" ? "Starting debate..." : "Confirm & Start"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

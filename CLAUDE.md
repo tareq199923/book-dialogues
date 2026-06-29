@@ -51,12 +51,39 @@ No test framework is installed. `test-persona.ts` at root is a standalone CLI te
 |-------|--------|---------|
 | `/api/persona/derive` | POST | Derive persona from book title (or return cached) |
 | `/api/debate/start` | POST | Resolve both personas, reject shallow-coherence books, create in-memory debate state, return debate ID |
-| `/api/debate/stream` | GET | SSE stream — `chunk`, `turn-complete`, `debate-complete`, `error` events |
+| `/api/debate/stream` | GET | SSE stream — `chunk`, `turn-complete`, `debate-meta`, `debate-complete`, `error` events |
+| `/api/debate/state` | GET | Get debate state by ID (in-memory then disk) — used for page refresh recovery |
+| `/api/debate/history` | GET | List completed debate summaries or fetch a specific debate by ID |
+| `/api/debate/usage` | GET | API call stats (total calls, rate limits, retries) from the in-memory tracker |
 
-### Frontend Status
+### Frontend Pages
 
-- `src/app/page.tsx` — Landing page (Phase 1 persona derivation only, displays raw JSON)
-- `src/app/debate/[id]/` — **Empty directory** — debate streaming UI not yet implemented
+| Page | Route | Status |
+|------|-------|--------|
+| Landing page | `/` | Full form with two inputs, maxTurns selector (6-20), field validation, loading states ("Deriving personas..." / "Starting debate..."), inline error banner with retry, past debates list |
+| Debate streaming UI | `/debate/[id]` | SSE EventSource consumer with `useReducer` state. Chat bubbles (left-aligned warm/amber for persona A, right-aligned cool/sky for persona B). Streaming text chunk-by-chunk. Turn tags (intro/reflection). Pulsing streaming indicator. Topic banner. Coherence warning for moderate-depth personas. Error banner. Progress counter (completedTurns / maxTurns). Auto-scroll. Debate-complete screen with "New Debate" button. Loading skeleton. Page refresh recovery |
+| History viewer | `/history/[id]` | Renders completed debate with same chat bubble layout, turn labels, loading/error states, back button |
+
+### Core Modules
+
+All under `src/lib/`:
+
+- `persona/` — `types.ts`, `derive.ts`, `cache.ts` (three-phase structured output derivation + file-based cache)
+- `debate/` — `orchestrator.ts`, `prompts.ts`, `topic.ts`, `ring-buffer.ts`, `persistence.ts`, `types.ts`
+- `gemini.ts` — SDK init, streaming + non-streaming calls with retry and model fallback
+- `data-path.ts` — Resolves `data/` path for local dev vs Vercel serverless
+- `api-tracker.ts` — Sliding-window (60s) API call statistics
+- `utils/retry.ts` — `withRetry()` exponential backoff + jitter
+
+### Implementation Status
+
+- **Persona derivation** — 100% complete (coherence gating, three-phase extraction, cache with promptVersion invalidation)
+- **Debate engine** — 100% complete (topic generation, ring buffer memory window, intro/debate/reflection rounds, error recovery, in-memory state + disk persistence)
+- **Debate streaming UI** — 100% complete (SSE consumption, real-time rendering, refresh recovery, all visual states)
+- **History & persistence** — Complete (disk-stored debates, viewer page, past debates list on landing page)
+- **Infrastructure** — Dockerfile, Vercel config (60s timeout), ESLint, Tailwind v4, RateIndicator component
+- **Tests** — No test framework installed; `test-persona.ts` standalone CLI script at root (`npx tsx test-persona.ts "Book Title"`)
+- **Advanced features** (RAG, book upload, user topic editing, multi-persona debates) — Not started
 
 ## Design Philosophy (from BUILD_PLAN.md)
 
