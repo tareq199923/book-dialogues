@@ -1,5 +1,5 @@
 import { PersonaCache } from "@/lib/persona/types";
-import { DebateTurn, TurnType } from "./types";
+import { DebateTurn } from "./types";
 
 /**
  * Build the system prompt for a persona.
@@ -55,8 +55,7 @@ Below is the conversation so far. When it is your turn, speak.`;
  * it literally reads, through its own temperament.
  */
 export function buildUserMessage(
-  turns: DebateTurn[],
-  currentSpeakerName: string
+  turns: DebateTurn[]
 ): string {
   const transcript = turns
     .map((t) => `${t.speakerName}: ${t.content}`)
@@ -87,8 +86,7 @@ Introduce yourself — who are you, and what brings you to this conversation?`;
  * more clearly about where they stand?
  */
 export function buildReflectionPrompt(
-  turns: DebateTurn[],
-  currentSpeakerName: string
+  turns: DebateTurn[]
 ): string {
   const transcript = turns
     .map((t) => `${t.speakerName}: ${t.content}`)

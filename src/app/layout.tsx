@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Spectral } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
@@ -11,6 +11,13 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const spectral = Spectral({
+  weight: ["400", "600", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-spectral",
 });
 
 export const metadata: Metadata = {
@@ -26,17 +33,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${spectral.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <header className="border-b border-zinc-200">
+        <header className="border-b border-rule">
           <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-            <Link href="/" className="text-sm font-medium text-zinc-900">
+            <Link href="/" className="text-sm font-semibold text-ink font-serif tracking-tight">
               Book Dialogues
             </Link>
             <Link
               href="/personas"
-              className="text-sm text-zinc-500 hover:text-zinc-800 transition-colors"
+              className="text-sm text-muted hover:text-ink transition-colors"
             >
               Personas
             </Link>

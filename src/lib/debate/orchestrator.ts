@@ -1,6 +1,6 @@
 import { PersonaCache } from "@/lib/persona/types";
 import { streamGenerateContent } from "@/lib/gemini";
-import { withRetry } from "@/lib/utils/retry";
+
 import { generateTopic } from "./topic";
 import {
   buildSystemPrompt,
@@ -35,10 +35,6 @@ function getPersona(state: DebateState, speaker: "A" | "B"): PersonaCache {
  * `succeeded` = got at least some content from the model.
  * `failed` = all retries exhausted, no content at all.
  */
-type TurnResult =
-  | { succeeded: true; content: string }
-  | { succeeded: false; error: string };
-
 /**
  * Run a full debate and yield SSE events as they happen.
  *
@@ -235,8 +231,8 @@ export async function* runDebate(
   const speakOrder: { speaker: "A" | "B"; type: TurnType; builder: (turns: DebateTurn[], name: string) => string }[] = [];
 
   // Build the full sequence
-  speakOrder.push({ speaker: firstSpeaker, type: "intro", builder: (_turns, _name) => buildIntroPrompt(getPersona(state, firstSpeaker), resolvedTopic!) });
-  speakOrder.push({ speaker: secondSpeaker, type: "intro", builder: (_turns, _name) => buildIntroPrompt(getPersona(state, secondSpeaker), resolvedTopic!) });
+  speakOrder.push({ speaker: firstSpeaker, type: "intro", builder: () => buildIntroPrompt(getPersona(state, firstSpeaker), resolvedTopic!) });
+  speakOrder.push({ speaker: secondSpeaker, type: "intro", builder: () => buildIntroPrompt(getPersona(state, secondSpeaker), resolvedTopic!) });
 
   for (let i = 0; i < debateTurnCount; i++) {
     const speaker: "A" | "B" = i % 2 === 0 ? secondSpeaker : firstSpeaker;

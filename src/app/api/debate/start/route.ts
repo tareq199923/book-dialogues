@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loadCachedPersona, savePersona, slugify } from "@/lib/persona/cache";
 import { derivePersona } from "@/lib/persona/derive";
-import { runDebate, debates } from "@/lib/debate/orchestrator";
+import { debates } from "@/lib/debate/orchestrator";
 
 export async function POST(req: NextRequest) {
   try {

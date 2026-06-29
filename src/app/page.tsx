@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import PreviewModal from "@/components/PreviewModal";
 
 type DebateSummary = {
   id: string;
@@ -65,11 +66,11 @@ export default function Home() {
       .then((data) => {
         if (!Array.isArray(data)) return;
         if (slugA) {
-          const match = data.find((p: any) => p.slug === slugA);
+          const match = data.find((p: { slug: string; title: string }) => p.slug === slugA);
           if (match) setTitleA(match.title);
         }
         if (slugB) {
-          const match = data.find((p: any) => p.slug === slugB);
+          const match = data.find((p: { slug: string; title: string }) => p.slug === slugB);
           if (match) setTitleB(match.title);
         }
       })
@@ -211,18 +212,18 @@ export default function Home() {
     "Start Debate";
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900">
+    <div className="min-h-screen bg-paper text-ink">
       <main className="mx-auto max-w-3xl px-4 sm:px-6 py-10 sm:py-16">
-        <h1 className="mb-2 text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950">
+        <h1 className="mb-2 text-2xl sm:text-3xl font-bold tracking-tight text-ink font-serif">
           Book Dialogues
         </h1>
-        <p className="mb-8 text-zinc-600">
+        <p className="mb-8 text-muted">
           Two books debate each other, as if they were real people.
         </p>
 
         <form onSubmit={handlePreview} className="mb-10 space-y-6">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-zinc-700">
+            <label className="block text-sm font-medium text-muted">
               Book 1
             </label>
             <input
@@ -233,10 +234,10 @@ export default function Home() {
                 clearFieldError("a");
               }}
               placeholder="e.g., The Brothers Karamazov"
-              className={`flex-1 rounded-lg border bg-white px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-1 ${
+              className={`w-full rounded-lg border bg-surface px-4 py-3 text-sm shadow-sm placeholder:text-muted focus:outline-none focus:ring-1 ${
                 fieldErrors.a
                   ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                  : "border-zinc-300 focus:border-zinc-950 focus:ring-zinc-950"
+                  : "border-rule focus:border-ink focus:ring-ink"
               }`}
             />
             {fieldErrors.a && (
@@ -245,7 +246,7 @@ export default function Home() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-zinc-700">
+            <label className="block text-sm font-medium text-muted">
               Book 2
             </label>
             <input
@@ -256,10 +257,10 @@ export default function Home() {
                 clearFieldError("b");
               }}
               placeholder="e.g., Beyond Good and Evil"
-              className={`flex-1 rounded-lg border bg-white px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-1 ${
+              className={`w-full rounded-lg border bg-surface px-4 py-3 text-sm shadow-sm placeholder:text-muted focus:outline-none focus:ring-1 ${
                 fieldErrors.b
                   ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                  : "border-zinc-300 focus:border-zinc-950 focus:ring-zinc-950"
+                  : "border-rule focus:border-ink focus:ring-ink"
               }`}
             />
             {fieldErrors.b && (
@@ -268,7 +269,7 @@ export default function Home() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-zinc-700">
+            <label className="block text-sm font-medium text-muted">
               Max turns
             </label>
             <div className="flex items-center gap-3">
@@ -279,16 +280,16 @@ export default function Home() {
                 min={6}
                 max={20}
                 step={2}
-                className="w-20 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-zinc-950 focus:outline-none focus:ring-1 focus:ring-zinc-950"
+                className="w-20 rounded-lg border border-rule bg-surface px-4 py-3 text-sm shadow-sm focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink"
               />
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-muted">
                 (default 12, range 6-20)
               </span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-zinc-700">
+            <label className="block text-sm font-medium text-muted">
               Topic (optional)
             </label>
             <input
@@ -296,14 +297,14 @@ export default function Home() {
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="e.g., Can justice coexist with suffering?"
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-zinc-950 focus:outline-none focus:ring-1 focus:ring-zinc-950"
+              className="w-full rounded-lg border border-rule bg-surface px-4 py-3 text-sm shadow-sm placeholder:text-muted focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink"
             />
           </div>
 
           <button
             type="submit"
             disabled={formPhase !== "idle" || !titleA.trim() || !titleB.trim()}
-            className="w-full rounded-lg bg-zinc-950 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
+            className="w-full rounded-lg bg-ink px-6 py-3 text-sm font-medium text-surface transition-colors hover:opacity-90 disabled:opacity-50"
           >
             {formPhase !== "idle" ? buttonLabel : "Start Debate"}
           </button>
@@ -325,109 +326,37 @@ export default function Home() {
         )}
 
         {(formPhase === "previewed" || formPhase === "starting") && previewData && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-            onClick={handleCancel}
-          >
-            <div
-              className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className="mb-2 text-lg font-semibold text-zinc-900">
-                Preview &amp; Confirm
-              </h2>
-
-              <div className="mb-4 flex gap-4">
-                <div className="flex-1 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                  <p className="text-sm font-medium text-amber-900">{previewData.personaA.name}</p>
-                  <p className="text-xs text-amber-700">{previewData.personaA.slug}</p>
-                  <span
-                    className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                      previewData.personaA.coherence === "deep"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-amber-100 text-amber-800"
-                    }`}
-                  >
-                    {previewData.personaA.coherence === "deep" ? "Deep" : "Moderate"}
-                  </span>
-                </div>
-                <div className="flex-1 rounded-lg border border-sky-200 bg-sky-50 p-3">
-                  <p className="text-sm font-medium text-sky-900">{previewData.personaB.name}</p>
-                  <p className="text-xs text-sky-700">{previewData.personaB.slug}</p>
-                  <span
-                    className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                      previewData.personaB.coherence === "deep"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-amber-100 text-amber-800"
-                    }`}
-                  >
-                    {previewData.personaB.coherence === "deep" ? "Deep" : "Moderate"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="mb-1 block text-sm font-medium text-zinc-700">
-                  Debate topic
-                </label>
-                <textarea
-                  value={editTopic}
-                  onChange={(e) => setEditTopic(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-zinc-950 focus:outline-none focus:ring-1 focus:ring-zinc-950"
-                />
-              </div>
-
-              {previewError && (
-                <p className="mb-3 text-sm text-red-600">{previewError}</p>
-              )}
-
-              <div className="flex items-center gap-3">
-                {previewData.topicGenerated && (
-                  <button
-                    onClick={handleRegenerate}
-                    disabled={formPhase !== "previewed"}
-                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50"
-                  >
-                    Regenerate
-                  </button>
-                )}
-                <button
-                  onClick={handleCancel}
-                  disabled={formPhase !== "previewed"}
-                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmStart}
-                  disabled={formPhase !== "previewed"}
-                  className="ml-auto rounded-lg bg-zinc-950 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
-                >
-                  {formPhase === "starting" ? "Starting debate..." : "Confirm & Start"}
-                </button>
-              </div>
-            </div>
-          </div>
+          <PreviewModal
+            personaA={previewData.personaA}
+            personaB={previewData.personaB}
+            topicGenerated={previewData.topicGenerated}
+            editTopic={editTopic}
+            onEditTopic={setEditTopic}
+            onRegenerate={handleRegenerate}
+            onCancel={handleCancel}
+            onConfirm={handleConfirmStart}
+            formPhase={formPhase}
+            error={previewError}
+          />
         )}
 
         {history.length > 0 && (
-          <section className="mt-12 border-t border-zinc-200 pt-8">
-            <h2 className="mb-4 text-sm font-medium text-zinc-700">Past debates</h2>
+          <section className="mt-12 border-t border-rule pt-8">
+            <h2 className="mb-4 text-sm font-medium text-muted">Past debates</h2>
             <div className="space-y-2">
               {history.map((entry) => (
                 <button
                   key={entry.id}
                   onClick={() => router.push(`/history/${entry.id}`)}
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-left text-sm transition-colors hover:bg-zinc-50"
+                  className="w-full rounded-lg border border-rule bg-surface px-4 py-3 text-left text-sm transition-colors hover:bg-paper"
                 >
-                  <span className="font-medium text-zinc-900">
+                  <span className="font-medium text-ink">
                     {entry.personaA} vs {entry.personaB}
                   </span>
-                  <span className="ml-2 text-zinc-500">
+                  <span className="ml-2 text-muted">
                     &middot; {entry.turnCount} turns
                   </span>
-                  <div className="mt-0.5 truncate text-zinc-400 italic">
+                  <div className="mt-0.5 truncate text-muted italic">
                     {entry.topic}
                   </div>
                 </button>

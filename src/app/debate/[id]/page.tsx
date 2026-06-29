@@ -4,6 +4,7 @@ import { useEffect, useReducer, useRef, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Markdown from "@/components/Markdown";
 import RateIndicator from "@/components/RateIndicator";
+import TurnLedger from "@/components/TurnLedger";
 import { formatDebateAsMarkdown, formatDebateAsJson } from "@/lib/export";
 
 type Turn = {
@@ -111,14 +112,27 @@ const initialState: StreamingState = {
   errorBanner: null,
 };
 
+function toRoman(n: number): string {
+  const map: [number, string][] = [
+    [20, "XX"], [19, "XIX"], [18, "XVIII"], [17, "XVII"], [16, "XVI"],
+    [15, "XV"], [14, "XIV"], [13, "XIII"], [12, "XII"], [11, "XI"],
+    [10, "X"], [9, "IX"], [8, "VIII"], [7, "VII"], [6, "VI"],
+    [5, "V"], [4, "IV"], [3, "III"], [2, "II"], [1, "I"],
+  ];
+  for (const [value, numeral] of map) {
+    if (n >= value) return numeral;
+  }
+  return "";
+}
+
 function TurnTag({ turnType }: { turnType: Turn["turnType"] }) {
   if (turnType === "debate") return null;
   return (
     <span
       className={`ml-2 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase leading-none ${
         turnType === "intro"
-          ? "bg-zinc-200 text-zinc-600"
-          : "bg-amber-200/60 text-amber-800"
+          ? "bg-rule/50 text-muted"
+          : "bg-mark/10 text-mark"
       }`}
     >
       {turnType}
@@ -126,52 +140,51 @@ function TurnTag({ turnType }: { turnType: Turn["turnType"] }) {
   );
 }
 
-function PersonaColors({ isPersonaA, turnType }: { isPersonaA: boolean; turnType: Turn["turnType"] }) {
-  const isReflection = turnType === "reflection";
+function PersonaColors({ isPersonaA }: { isPersonaA: boolean }) {
   if (isPersonaA) {
     return {
-      headerBg: isReflection ? "bg-amber-200" : "bg-amber-100",
-      headerText: "text-amber-900",
-      bubbleBg: isReflection ? "bg-amber-50/80" : "bg-amber-50",
-      border: isReflection ? "border-amber-200" : "border-amber-100",
-      pulse: "bg-amber-500",
+      headerBg: "bg-paper",
+      headerText: "text-ink",
+      bubbleBg: "bg-surface",
+      border: "border-rule",
+      nameWeight: "font-semibold",
     };
   }
   return {
-    headerBg: isReflection ? "bg-sky-200" : "bg-sky-100",
-    headerText: "text-sky-900",
-    bubbleBg: isReflection ? "bg-sky-50/80" : "bg-sky-50",
-    border: isReflection ? "border-sky-200" : "border-sky-100",
-    pulse: "bg-sky-500",
+    headerBg: "bg-[#F0F2F0]",
+    headerText: "text-ink",
+    bubbleBg: "bg-surface",
+    border: "border-rule",
+    nameWeight: "font-normal",
   };
 }
 
 function LoadingSkeleton() {
   return (
     <div className="space-y-5">
-      <div className="h-12 animate-pulse rounded-lg bg-zinc-200" />
+      <div className="h-12 animate-pulse rounded-lg bg-rule/30" />
 
       <div className="flex justify-start">
-        <div className="max-w-[90%] sm:max-w-[75%] animate-pulse rounded-xl border border-zinc-100 bg-zinc-50 shadow-sm">
-          <div className="flex items-center rounded-t-xl bg-amber-100/50 px-4 py-2">
-            <div className="h-3 w-20 rounded bg-amber-200" />
+        <div className="max-w-[90%] sm:max-w-[75%] animate-pulse rounded-xl border border-rule bg-surface shadow-sm">
+          <div className="flex items-center rounded-t-xl bg-paper px-4 py-2">
+            <div className="h-3 w-20 rounded bg-rule/50" />
           </div>
           <div className="space-y-2.5 px-4 py-3">
-            <div className="h-3 w-full rounded bg-zinc-200" />
-            <div className="h-3 w-4/5 rounded bg-zinc-200" />
-            <div className="h-3 w-3/5 rounded bg-zinc-200" />
+            <div className="h-3 w-full rounded bg-rule/30" />
+            <div className="h-3 w-4/5 rounded bg-rule/30" />
+            <div className="h-3 w-3/5 rounded bg-rule/30" />
           </div>
         </div>
       </div>
 
       <div className="flex justify-end">
-        <div className="max-w-[90%] sm:max-w-[75%] animate-pulse rounded-xl border border-zinc-100 bg-zinc-50 shadow-sm">
-          <div className="flex items-center rounded-t-xl bg-sky-100/50 px-4 py-2">
-            <div className="h-3 w-24 rounded bg-sky-200" />
+        <div className="max-w-[90%] sm:max-w-[75%] animate-pulse rounded-xl border border-rule bg-surface shadow-sm">
+          <div className="flex items-center rounded-t-xl bg-[#F0F2F0] px-4 py-2">
+            <div className="h-3 w-24 rounded bg-rule/50" />
           </div>
           <div className="space-y-2.5 px-4 py-3">
-            <div className="h-3 w-full rounded bg-zinc-200" />
-            <div className="h-3 w-3/4 rounded bg-zinc-200" />
+            <div className="h-3 w-full rounded bg-rule/30" />
+            <div className="h-3 w-3/4 rounded bg-rule/30" />
           </div>
         </div>
       </div>
@@ -211,7 +224,6 @@ export default function DebatePage() {
   const eventSourceRef = useRef<EventSource | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Handle case where streamState might be unexpectedly undefined
   const safeStreamState = streamState ?? initialState;
   const { turns, topic, personaA, personaB, maxTurns, debateComplete, errorBanner } = safeStreamState;
 
@@ -225,6 +237,11 @@ export default function DebatePage() {
   const lastActiveContent = useMemo(
     () => turns[safeStreamState.activeTurnIndex]?.content,
     [safeStreamState.activeTurnIndex, turns]
+  );
+
+  const currentTurnNumber = useMemo(
+    () => turns.length > 0 ? turns.length : 1,
+    [turns.length]
   );
 
   function download(content: string, filename: string, type: string) {
@@ -297,9 +314,6 @@ export default function DebatePage() {
     async function connect() {
       dispatch({ type: "RESET" });
 
-      // Check if a previous session left state on disk or in memory.
-      // If so, restore existing turns so the user doesn't lose progress
-      // after a page refresh.
       try {
         const stateRes = await fetch(`/api/debate/state?id=${encodeURIComponent(debateId!)}`);
         if (stateRes.ok) {
@@ -307,7 +321,6 @@ export default function DebatePage() {
           if (!cancelled) {
             dispatch({ type: "SET_META", topic: existing.topic, personaA: existing.personaA, personaB: existing.personaB, maxTurns: existing.maxTurns });
 
-            // Hydrate existing turns
             for (const turn of existing.turns) {
               const turnType = inferTurnType(turn.sequenceNumber, existing.maxTurns);
               dispatch({ type: "ADD_TURN", speakerName: turn.speakerName, turnType });
@@ -325,7 +338,6 @@ export default function DebatePage() {
         // No existing state — treat as a fresh debate
       }
 
-      // Connect to SSE stream for new (or remaining) turns
       const url = new URL("/api/debate/stream", window.location.origin);
       url.searchParams.set("id", debateId!);
       const evtSource = new EventSource(url.toString());
@@ -400,38 +412,38 @@ export default function DebatePage() {
 
   if (debateComplete) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 p-4 sm:p-6 text-zinc-900">
-        <h2 className="mb-4 text-2xl font-bold tracking-tight">Debate complete</h2>
-        <p className="mb-6 max-w-md text-center text-zinc-600">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-paper p-4 sm:p-6 text-ink">
+        <h2 className="mb-4 text-2xl font-bold tracking-tight font-serif">Debate complete</h2>
+        <p className="mb-6 max-w-md text-center text-muted">
           {personaA?.name ?? "Person A"} and {personaB?.name ?? "Person B"} have shared their
           reflections. The conversation has ended.
         </p>
         <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
           <button
             onClick={handleDownloadMarkdown}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+            className="rounded-lg border border-rule px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-paper"
           >
             Download Markdown
           </button>
           <button
             onClick={handleDownloadJson}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+            className="rounded-lg border border-rule px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-paper"
           >
             Download JSON
           </button>
           <button
             onClick={handleCopyLink}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+            className="rounded-lg border border-rule px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-paper"
           >
             Copy Link
           </button>
         </div>
         {showCopiedToast && (
-          <p className="mb-6 text-xs text-emerald-600">Link copied to clipboard</p>
+          <p className="mb-6 text-xs text-mark">Link copied to clipboard</p>
         )}
         <button
           onClick={() => router.push("/")}
-          className="rounded-lg bg-zinc-950 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+          className="rounded-lg bg-ink px-6 py-3 text-sm font-medium text-surface transition-colors hover:opacity-90"
         >
           New Debate
         </button>
@@ -440,15 +452,15 @@ export default function DebatePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900">
-      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-sm">
+    <div className="flex min-h-screen flex-col bg-paper text-ink">
+      <header className="sticky top-0 z-10 border-b border-rule bg-surface/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 sm:px-6 py-3">
-          <span className="text-sm font-medium text-zinc-800">Book Dialogues</span>
+          <span className="text-sm font-medium text-ink font-serif">Book Dialogues</span>
           <div className="flex items-center gap-2">
             <RateIndicator />
             {turns.length > 0 && (
-              <span className="text-xs text-zinc-500">
-                {completedTurns} / {maxTurns}
+              <span className="text-xs text-muted font-serif hidden sm:inline">
+                {toRoman(completedTurns)} / {toRoman(maxTurns)}
               </span>
             )}
           </div>
@@ -457,13 +469,21 @@ export default function DebatePage() {
 
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 sm:px-6 py-4 sm:py-6">
         {topic && (
-          <div className="mb-6 rounded-lg bg-zinc-100 px-3 py-3 sm:px-4 sm:py-4 text-center text-zinc-700 italic text-sm sm:text-base">
-            Topic: &ldquo;{topic}&rdquo;
+          <div className="mb-1 rounded-lg bg-surface px-3 py-3 sm:px-4 sm:py-4 text-center text-ink font-serif text-sm sm:text-base">
+            &ldquo;{topic}&rdquo;
           </div>
         )}
 
+        {turns.length > 0 && (
+          <TurnLedger
+            maxTurns={maxTurns}
+            completedTurns={completedTurns}
+            currentTurnNumber={currentTurnNumber}
+          />
+        )}
+
         {(personaA?.coherence === "moderate" || personaB?.coherence === "moderate") && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-mark/20 bg-mark/5 p-3 text-sm text-mark">
             <span className="flex-shrink-0">&#9888;</span>
             <span>
               {[
@@ -477,7 +497,7 @@ export default function DebatePage() {
         )}
 
         {errorBanner && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="mb-4 animate-error-banner rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {errorBanner}
           </div>
         )}
@@ -487,22 +507,22 @@ export default function DebatePage() {
             <LoadingSkeleton />
           ) : turns.map((turn) => {
             const isPersonaA = personaA ? turn.speakerName === personaA.name : true;
-            const colors = PersonaColors({ isPersonaA, turnType: turn.turnType });
+            const colors = PersonaColors({ isPersonaA });
 
             return (
               <div
                 key={turn.id}
-                className={`flex ${isPersonaA ? "justify-start" : "justify-end"}`}
+                className={`flex animate-bubble-in ${isPersonaA ? "justify-start" : "justify-end"}`}
               >
                 <div className={`max-w-[90%] sm:max-w-[75%] rounded-xl border shadow-sm ${colors.bubbleBg} ${colors.border}`}>
-                  <div className={`flex items-center rounded-t-xl px-4 py-2 text-xs font-medium ${colors.headerBg} ${colors.headerText}`}>
+                  <div className={`flex items-center rounded-t-xl px-5 py-2 text-xs ${colors.headerBg} ${colors.headerText} ${colors.nameWeight} font-serif`}>
                     {turn.isStreaming && (
-                      <span className={`mr-2 inline-block h-2 w-2 animate-pulse rounded-full ${colors.pulse}`} />
+                      <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-mark" />
                     )}
                     {turn.speakerName}
                     <TurnTag turnType={turn.turnType} />
                   </div>
-                  <div className="px-4 py-3 leading-relaxed">
+                  <div className="px-5 py-3.5 leading-relaxed">
                     <Markdown>{turn.content}</Markdown>
                   </div>
                 </div>
@@ -511,6 +531,8 @@ export default function DebatePage() {
           })}
         </div>
       </main>
+
+
     </div>
   );
 }

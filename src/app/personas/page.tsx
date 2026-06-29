@@ -62,24 +62,25 @@ export default function PersonaGallery() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPersonas();
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900">
+    <div className="min-h-screen bg-paper text-ink">
       <main className="mx-auto max-w-5xl px-4 py-10 sm:py-16">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight font-serif">
               Persona Gallery
             </h1>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-muted">
               Browse cached personas and use them in a debate.
             </p>
           </div>
           <Link
             href="/"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors"
+            className="text-sm font-medium text-muted hover:text-ink transition-colors"
           >
             &larr; Back to Home
           </Link>
@@ -90,12 +91,12 @@ export default function PersonaGallery() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-zinc-200 bg-white p-5 animate-pulse"
+                className="rounded-xl border border-rule bg-surface p-5 animate-pulse"
               >
-                <div className="h-5 bg-zinc-200 rounded w-3/4 mb-2" />
-                <div className="h-4 bg-zinc-200 rounded w-1/2 mb-4" />
-                <div className="h-4 bg-zinc-200 rounded w-1/3 mb-3" />
-                <div className="h-4 bg-zinc-200 rounded w-1/4" />
+                <div className="h-5 bg-rule/50 rounded w-3/4 mb-2" />
+                <div className="h-4 bg-rule/30 rounded w-1/2 mb-4" />
+                <div className="h-4 bg-rule/30 rounded w-1/3 mb-3" />
+                <div className="h-4 bg-rule/30 rounded w-1/4" />
               </div>
             ))}
           </div>
@@ -114,13 +115,13 @@ export default function PersonaGallery() {
         )}
 
         {!loading && !error && personas.length === 0 && (
-          <div className="rounded-xl border border-zinc-200 bg-white p-10 text-center">
-            <p className="text-zinc-600">
+          <div className="rounded-xl border border-rule bg-surface p-10 text-center">
+            <p className="text-muted">
               No personas cached yet. Start a debate to generate one.
             </p>
             <Link
               href="/"
-              className="mt-2 inline-block text-sm font-medium text-zinc-900 underline hover:no-underline"
+              className="mt-2 inline-block text-sm font-medium text-ink underline hover:no-underline"
             >
               Start a debate
             </Link>
@@ -134,10 +135,10 @@ export default function PersonaGallery() {
               return (
                 <div
                   key={p.slug}
-                  className="rounded-xl border border-zinc-200 bg-white p-5 flex flex-col"
+                  className="rounded-xl border border-rule bg-surface p-5 flex flex-col"
                 >
-                  <h3 className="text-lg font-bold text-zinc-900">{p.name}</h3>
-                  <p className="text-sm text-zinc-500 mb-3 line-clamp-1">
+                  <h3 className="text-lg font-bold text-ink font-serif">{p.name}</h3>
+                  <p className="text-sm text-muted mb-3 line-clamp-1">
                     {p.title}
                   </p>
 
@@ -150,14 +151,14 @@ export default function PersonaGallery() {
                     >
                       {badge.label}
                     </span>
-                    <span className="inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+                    <span className="inline-block rounded-full bg-rule/30 px-2 py-0.5 text-xs font-medium text-muted">
                       {p.personaType === "character-driven"
                         ? "Character-driven"
                         : "Voice-driven"}
                     </span>
                   </div>
 
-                  <p className="text-xs text-zinc-400 mt-auto mb-4">
+                  <p className="text-xs text-muted mt-auto mb-4">
                     {relativeTime(p.cachedAt)}
                   </p>
 
@@ -166,7 +167,7 @@ export default function PersonaGallery() {
                       onClick={() =>
                         router.push(`/?select=${p.slug}&side=a`)
                       }
-                      className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+                      className="flex-1 rounded-lg border border-rule px-3 py-2 text-xs font-medium text-muted hover:bg-paper transition-colors"
                     >
                       Use as Book 1
                     </button>
@@ -174,7 +175,7 @@ export default function PersonaGallery() {
                       onClick={() =>
                         router.push(`/?select=${p.slug}&side=b`)
                       }
-                      className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+                      className="flex-1 rounded-lg border border-rule px-3 py-2 text-xs font-medium text-muted hover:bg-paper transition-colors"
                     >
                       Use as Book 2
                     </button>

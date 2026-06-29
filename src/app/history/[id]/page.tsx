@@ -103,21 +103,21 @@ export default function HistoryPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900">
-        <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-sm">
+      <div className="flex min-h-screen flex-col bg-paper text-ink">
+        <header className="sticky top-0 z-10 border-b border-rule bg-surface/80 backdrop-blur-sm">
           <div className="mx-auto flex max-w-4xl items-center justify-between px-4 sm:px-6 py-3">
-            <span className="text-sm font-medium text-zinc-800">Book Dialogues</span>
+            <span className="text-sm font-medium text-ink">Book Dialogues</span>
           </div>
         </header>
         <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 sm:px-6 py-4 sm:py-6">
           <div className="space-y-5">
-            <div className="h-12 animate-pulse rounded-lg bg-zinc-200" />
+            <div className="h-12 animate-pulse rounded-lg bg-rule/30" />
             <div className="flex justify-start">
-              <div className="max-w-[90%] sm:max-w-[75%] animate-pulse rounded-xl border bg-zinc-50 shadow-sm">
-                <div className="h-8 rounded-t-xl bg-amber-100/50 px-4 py-2" />
+              <div className="max-w-[90%] sm:max-w-[75%] animate-pulse rounded-xl border border-rule bg-surface shadow-sm">
+                <div className="h-8 rounded-t-xl bg-paper px-4 py-2" />
                 <div className="space-y-2.5 px-4 py-3">
-                  <div className="h-3 w-full rounded bg-zinc-200" />
-                  <div className="h-3 w-4/5 rounded bg-zinc-200" />
+                  <div className="h-3 w-full rounded bg-rule/30" />
+                  <div className="h-3 w-4/5 rounded bg-rule/30" />
                 </div>
               </div>
             </div>
@@ -129,12 +129,12 @@ export default function HistoryPage() {
 
   if (error || !debate) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 p-4 sm:p-6 text-zinc-900">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-paper p-4 sm:p-6 text-ink">
         <h2 className="mb-4 text-2xl font-bold tracking-tight">Debate not found</h2>
-        <p className="mb-6 text-zinc-600">{error ?? "This debate does not exist."}</p>
+        <p className="mb-6 text-muted">{error ?? "This debate does not exist."}</p>
         <button
           onClick={() => router.push("/")}
-          className="rounded-lg bg-zinc-950 px-6 py-3 text-sm font-medium text-white hover:bg-zinc-800"
+          className="rounded-lg bg-ink px-6 py-3 text-sm font-medium text-surface hover:opacity-90"
         >
           Back to Home
         </button>
@@ -145,38 +145,39 @@ export default function HistoryPage() {
   const isPersonaA = (name: string) => name === debate.personaA.name;
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900">
-      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-sm">
+    <div className="flex min-h-screen flex-col bg-paper text-ink">
+      <header className="sticky top-0 z-10 border-b border-rule bg-surface/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 sm:px-6 py-3">
           <button
             onClick={() => router.push("/")}
-            className="text-sm text-zinc-500 hover:text-zinc-800"
+            className="text-sm text-muted hover:text-ink"
           >
             &larr; Back
           </button>
+          <span className="text-xs text-muted">Viewing completed debate</span>
           <div className="flex items-center gap-2">
             <button
               onClick={handleDownloadMarkdown}
-              className="rounded border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+              className="rounded border border-rule px-2 py-1 text-xs font-medium text-muted hover:bg-paper transition-colors"
             >
               MD
             </button>
             <button
               onClick={handleDownloadJson}
-              className="rounded border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+              className="rounded border border-rule px-2 py-1 text-xs font-medium text-muted hover:bg-paper transition-colors"
             >
               JSON
             </button>
             <button
               onClick={handleCopyLink}
-              className="rounded border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+              className="rounded border border-rule px-2 py-1 text-xs font-medium text-muted hover:bg-paper transition-colors"
             >
               Copy
             </button>
             {showCopiedToast && (
-              <span className="text-xs text-emerald-600">Copied!</span>
+              <span className="text-xs text-mark">Copied!</span>
             )}
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-muted">
               {debate.turns.length} turns
             </span>
           </div>
@@ -184,12 +185,12 @@ export default function HistoryPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 sm:px-6 py-4 sm:py-6">
-        <div className="mb-6 rounded-lg bg-zinc-100 px-3 py-3 sm:px-4 sm:py-4 text-center text-zinc-700 italic text-sm sm:text-base">
-          Topic: &ldquo;{debate.topic}&rdquo;
+        <div className="mb-1 rounded-lg bg-surface px-3 py-3 sm:px-4 sm:py-4 text-center text-ink font-serif text-sm sm:text-base">
+          &ldquo;{debate.topic}&rdquo;
         </div>
 
         <div className="mb-4 text-center">
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-muted font-serif">
             {debate.personaA.name} &middot; {debate.personaB.name} &middot;{" "}
             {new Date(debate.createdAt).toLocaleDateString()}
           </span>
@@ -198,7 +199,6 @@ export default function HistoryPage() {
         <div className="flex-1 space-y-5 overflow-y-auto">
           {debate.turns.map((turn) => {
             const aSide = isPersonaA(turn.speakerName);
-            const isReflection = turn.sequenceNumber >= debate.maxTurns - 2;
 
             return (
               <div
@@ -207,32 +207,28 @@ export default function HistoryPage() {
               >
                 <div
                   className={`max-w-[90%] sm:max-w-[75%] rounded-xl border shadow-sm ${
-                    isReflection
-                      ? aSide ? "bg-amber-50/80 border-amber-200" : "bg-sky-50/80 border-sky-200"
-                      : aSide ? "bg-amber-50 border-amber-100" : "bg-sky-50 border-sky-100"
+                    aSide ? "bg-surface border-rule" : "bg-surface border-rule"
                   }`}
                 >
                   <div
-                    className={`flex items-center rounded-t-xl px-4 py-2 text-xs font-medium ${
-                      isReflection
-                        ? aSide ? "bg-amber-200 text-amber-900" : "bg-sky-200 text-sky-900"
-                        : aSide ? "bg-amber-100 text-amber-900" : "bg-sky-100 text-sky-900"
-                    }`}
+                    className={`flex items-center rounded-t-xl px-5 py-2 text-xs font-serif ${
+                      aSide ? "bg-paper font-semibold" : "bg-[#F0F2F0] font-normal"
+                    } text-ink`}
                   >
                     {turn.speakerName}
                     <span
                       className={`ml-2 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase leading-none ${
                         turn.sequenceNumber < 2
-                          ? "bg-zinc-200 text-zinc-600"
-                          : isReflection
-                            ? "bg-amber-200/60 text-amber-800"
+                          ? "bg-rule/50 text-muted"
+                          : turn.sequenceNumber >= debate.maxTurns - 2
+                            ? "bg-mark/10 text-mark"
                             : "hidden"
                       }`}
                     >
-                      {turn.sequenceNumber < 2 ? "intro" : isReflection ? "reflection" : "debate"}
+                      {turn.sequenceNumber < 2 ? "intro" : turn.sequenceNumber >= debate.maxTurns - 2 ? "reflection" : "debate"}
                     </span>
                   </div>
-                  <div className="px-4 py-3 leading-relaxed">
+                  <div className="px-5 py-3.5 leading-relaxed">
                     <Markdown>{turn.content}</Markdown>
                   </div>
                 </div>
