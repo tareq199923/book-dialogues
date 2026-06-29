@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Book Dialogues
+
+Two books enter. One idea wins.
+
+**Book Dialogues** is a Next.js app that generates live, persona-driven debates between any two books using Google Gemini.
+
+## Features
+
+- **Persona derivation** — extracts a structured "mind" from each book (temperament, obsessions, argument style, voice)
+- **Live streaming debates** — SSE-powered real-time back-and-forth with intro, debate, and reflection turns
+- **Topic control** — auto-generated or manually edited debate topics
+- **Persona cache** — derived personas are cached so revisiting a book is instant
+- **Export & sharing** — download completed debates as Markdown or JSON, copy share links
+- **History viewer** — revisit past debates
+- **Persona gallery** — browse all cached personas with quick-start buttons
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- A Google Gemini API key (get one at https://aistudio.google.com/app/apikey)
+
+### Setup
+
+```bash
+git clone <repo-url>
+cd book-dialogues
+npm install
+```
+
+Create a `.env.local` file:
+
+```env
+GEMINI_API_KEY=your_api_key_here
+```
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GEMINI_API_KEY` | Yes | Google Gemini API key for persona derivation and debate generation |
 
-## Learn More
+## Usage
 
-To learn more about Next.js, take a look at the following resources:
+1. Enter two book titles on the home page (e.g., "The Brothers Karamazov" vs "Beyond Good and Evil").
+2. Preview the derived personas and generated topic — edit the topic or regenerate if desired.
+3. Click confirm to start the live debate.
+4. Watch the debate unfold turn by turn.
+5. Download, copy the share link, or revisit in the history viewer.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Vercel
 
-## Deploy on Vercel
+Deploy with the Vercel CLI or Git integration:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npx vercel
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Set the `GEMINI_API_KEY` environment variable in the Vercel dashboard. API routes have a 60-second maximum duration configured in `vercel.json`.
+
+### Docker
+
+```bash
+docker build -t book-dialogues .
+docker run -e GEMINI_API_KEY=your_key -p 3000:3000 book-dialogues
+```
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **UI:** React 19, Tailwind CSS 4
+- **AI:** Google Gemini 2.5 Flash via `@google/genai`
+- **Storage:** File-based JSON (local) or `/tmp` (Vercel)
+- **Deployment:** Vercel or Docker
