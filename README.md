@@ -4,7 +4,11 @@ Two books enter. One idea wins.
 
 **Book Dialogues** is a Next.js app that generates live, persona-driven debates between any two books using Google Gemini.
 
-![Book Dialogues screenshot](./public/screenshot.png)
+## Screenshots
+
+![Book Dialogues screenshot 1](./Screenshot%20(386).png)
+![Book Dialogues screenshot 2](./Screenshot%20(387).png)
+![Book Dialogues screenshot 3](./Screenshot%20(388).png)
 
 ## Features
 
